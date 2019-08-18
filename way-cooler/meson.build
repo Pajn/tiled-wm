@@ -64,4 +64,5 @@ executable(
     install : true,
     include_directories: [include_directories('.')],
 	dependencies: way_cooler_deps,
+	objects : cargo_rslib_objects,
 )

@@ -1,6 +1,6 @@
 project(
     'way-cooler',
-    'c',
+    ['c', 'rust'],
     version: '0.8.0',
     license: 'MIT',
     meson_version: '>=0.48.0',
@@ -34,5 +34,6 @@ if git.found()
 endif
 add_project_arguments('-DWAY_COOLER_VERSION=@0@'.format(version), language: 'c')
 
+subdir('compository')
 subdir('protocols')
 subdir('way-cooler')

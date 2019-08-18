@@ -1,0 +1,11 @@
+[package]
+name = "compository"
+version = "0.1.0"
+authors = ["Rasmus Eneman <rasmus@eneman.eu>"]
+edition = "2018"
+
+[lib]
+# crate-type = ["staticlib", "cdylib"]
+crate-type = ["dylib"]
+
+[dependencies]

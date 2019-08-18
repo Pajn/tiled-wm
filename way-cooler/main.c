@@ -11,6 +11,7 @@
 #include <wlr/util/log.h>
 
 #include "server.h"
+#include "../compository/compository.h"
 
 const char *WC_HELP_MESSAGE =
 		"Usage: %s [OPTION] startup_command\n"
@@ -33,6 +34,8 @@ void print_usage(void) {
 }
 
 int main(int argc, char *argv[]) {
+	print_hello_from_rust();
+
 	WC_BINARY_PATH = argv[0];
 	wlr_log_init(WLR_DEBUG, NULL);
 	char *startup_cmd = NULL;
