@@ -1,0 +1,10 @@
+{
+  "files.associations": {
+    "*.YAML-tmLanguage": "yaml",
+    "*.html": "html",
+    ".stylelintrc": "json",
+    "Dockerfile-*": "dockerfile",
+    "yarn.lock": "yaml",
+    "compository.h": "c"
+  }
+}

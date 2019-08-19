@@ -14,6 +14,8 @@
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/xwayland.h>
 
+#include "../compository/compository.h"
+
 int WC_DEBUG;
 
 struct wc_server {
@@ -57,6 +59,8 @@ struct wc_server {
 	struct wc_mousegrabber *mousegrabber;
 	struct wc_keybindings *keybindings;
 	bool mouse_grab;
+
+	struct WindowManager *wm;
 };
 
 bool init_server(struct wc_server *server);

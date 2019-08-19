@@ -7,6 +7,8 @@
 
 #include <wlr/util/log.h>
 
+#include "../compository/compository.h"
+
 #include "mousegrabber.h"
 #include "output.h"
 #include "seat.h"

@@ -15,6 +15,8 @@
 #include <wlr/util/log.h>
 #include <wlr/util/region.h>
 
+#include "../compository/compository.h"
+
 #include "layer_shell.h"
 #include "server.h"
 #include "view.h"
@@ -318,6 +320,7 @@ static void wc_new_output(struct wl_listener *listener, void *data) {
 	output->server = server;
 	wlr_output->data = output;
 	output->damage = wlr_output_damage_create(wlr_output);
+	output->monitor_id = create_monitor(server->wm);
 
 	size_t len = sizeof(output->layers) / sizeof(output->layers[0]);
 	for (size_t i = 0; i < len; i++) {

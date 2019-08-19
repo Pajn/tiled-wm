@@ -48,11 +48,22 @@ static void wc_keyboard_on_key(struct wl_listener *listener, void *data) {
 		}
 
 		switch (keysym) {
-		case XKB_KEY_Escape:
-			if (wc_keyboard_mod_is_active(keyboard, "Shift") &&
-					wc_keyboard_mod_is_active(keyboard, "Control")) {
-				wl_display_terminate(server->wl_display);
-				handled = true;
+			case XKB_KEY_Escape: {
+				if (wc_keyboard_mod_is_active(keyboard, "Shift") &&
+						wc_keyboard_mod_is_active(keyboard, "Control")) {
+					wl_display_terminate(server->wl_display);
+					handled = true;
+				}
+				break;
+			}
+			case XKB_KEY_a: {
+				if (event->state == WLR_KEY_PRESSED && wc_keyboard_mod_is_active(keyboard, "Control")) {
+					wlr_log(WLR_INFO, "Executing \"ulauncher-toggle\"");
+					if (fork() == 0) {
+						execl("/bin/sh", "/bin/sh", "-c", "ulauncher-toggle", NULL);
+					}
+					handled = true;
+				}
 				break;
 			}
 		}

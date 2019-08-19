@@ -119,6 +119,7 @@ static void wc_xwayland_new_surface(struct wl_listener *listener, void *data) {
 	view->server = server;
 	view->xwayland_surface = xwayland_surface;
 	view->surface_type = WC_XWAYLAND;
+	view->window_id = create_window(server->wm);
 
 	view->map.notify = wc_xwayland_surface_map;
 	view->unmap.notify = wc_xwayland_surface_unmap;

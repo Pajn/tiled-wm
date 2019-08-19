@@ -142,6 +142,22 @@ void wc_view_update_geometry(struct wc_view *view, struct wlr_box new_geo) {
 	memcpy(&view->pending_geometry, &new_geo, sizeof(struct wlr_box));
 }
 
+void wc_view_update_geometry_from_wm(struct wc_server *server, IdArray id_array) {
+	for (uintptr_t i = 0; i < id_array.length; i++) {
+		u_int64_t window_id = id_array.data[i];
+		struct wc_view *view;
+		wl_list_for_each(view, &server->views, link) {
+			if (view->window_id == window_id) {
+				wlr_box new_geo = get_window_geometry(view->server->wm, view->window_id);
+				view->geo = new_geo;
+				wc_view_damage(view, NULL);
+			}
+		}
+	}
+
+	rust_free(id_array);
+}
+
 void wc_view_damage(struct wc_view *view, pixman_region32_t *damage) {
 	struct wlr_output *outputs[4] = {0};
 	wc_view_get_outputs(view->server->output_layout, view, outputs);
@@ -230,6 +246,8 @@ void wc_view_commit(struct wc_view *view, struct wlr_box geo) {
 		wc_view_damage_whole(view);
 	}
 
+	bool geo_updated = size_changed;
+
 	uint32_t pending_serial = view->pending_serial;
 	switch (view->surface_type) {
 	case WC_XDG:
@@ -240,10 +258,12 @@ void wc_view_commit(struct wc_view *view, struct wlr_box geo) {
 			if (view->pending_geometry.x != view->geo.x) {
 				view->geo.x = view->pending_geometry.x +
 						view->pending_geometry.width - geo.width;
+				geo_updated = true;
 			}
 			if (view->pending_geometry.y != view->geo.y) {
 				view->geo.y = view->pending_geometry.y +
 						view->pending_geometry.height - geo.height;
+				geo_updated = true;
 			}
 
 			wc_view_damage_whole(view);
@@ -261,16 +281,23 @@ void wc_view_commit(struct wc_view *view, struct wlr_box geo) {
 			if (view->pending_geometry.x != view->geo.x) {
 				view->geo.x = view->pending_geometry.x +
 						view->pending_geometry.width - geo.width;
+				geo_updated = true;
 			}
 			if (view->pending_geometry.y != view->geo.y) {
 				view->geo.y = view->pending_geometry.y +
 						view->pending_geometry.height - geo.height;
+				geo_updated = true;
 			}
 
 			wc_view_damage_whole(view);
 			view->pending_serial = 0;
 		}
 		break;
+	}
+
+	if (geo_updated) {
+		IdArray id_array = update_window(view->server->wm, view->window_id, &view->geo);
+		wc_view_update_geometry_from_wm(view->server, id_array);
 	}
 	pixman_region32_fini(&damage);
 }

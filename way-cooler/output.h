@@ -19,6 +19,8 @@ struct wc_output {
 
 	struct wl_listener destroy;
 	struct wl_listener frame;
+
+	uint64_t monitor_id;
 };
 
 void wc_output_init(struct wc_server *server);

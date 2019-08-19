@@ -7,6 +7,8 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
 
+#include "../compository/compository.h"
+
 #include "cursor.h"
 #include "output.h"
 #include "seat.h"
@@ -22,6 +24,13 @@ static void wc_xdg_surface_map(struct wl_listener *listener, void *data) {
 	struct wlr_box box = {0};
 	wlr_xdg_surface_get_geometry(surface, &box);
 	memcpy(&view->geo, &box, sizeof(struct wlr_box));
+
+	struct wlr_xdg_toplevel *toplevel = view->xdg_surface->toplevel;
+	printf("2current fullscreen: %d, maximized: %d\n", toplevel->current.fullscreen, toplevel->current.maximized);
+	printf("2server_pending fullscreen: %d, maximized: %d\n", toplevel->server_pending.fullscreen, toplevel->server_pending.maximized);
+	printf("2client_pending fullscreen: %d, maximized: %d\n", toplevel->client_pending.fullscreen, toplevel->client_pending.maximized);
+
+	configure_window(view->server->wm, view->window_id, &view->geo, toplevel->app_id, toplevel->client_pending.fullscreen);
 
 	wc_view_damage_whole(view);
 }
@@ -45,6 +54,11 @@ static void wc_xdg_surface_commit(struct wl_listener *listener, void *data) {
 
 void wc_xdg_surface_destroy(struct wl_listener *listener, void *data) {
 	struct wc_view *view = wl_container_of(listener, view, destroy);
+
+	IdArray id_array = destroy_window(view->server->wm, view->window_id);
+
+	wc_view_update_geometry_from_wm(view->server, id_array);
+
 	wl_list_remove(&view->link);
 
 	wl_list_remove(&view->map.link);
@@ -90,6 +104,7 @@ static void wc_xdg_new_surface(struct wl_listener *listener, void *data) {
 	view->server = server;
 	view->xdg_surface = xdg_surface;
 	view->surface_type = WC_XDG;
+	view->window_id = create_window(server->wm);
 
 	view->map.notify = wc_xdg_surface_map;
 	view->unmap.notify = wc_xdg_surface_unmap;
@@ -108,6 +123,10 @@ static void wc_xdg_new_surface(struct wl_listener *listener, void *data) {
 	wl_signal_add(&toplevel->events.request_resize, &view->request_resize);
 
 	wl_list_insert(&server->views, &view->link);
+
+	printf("current fullscreen: %d, maximized: %d\n", toplevel->current.fullscreen, toplevel->current.maximized);
+	printf("server_pending fullscreen: %d, maximized: %d\n", toplevel->server_pending.fullscreen, toplevel->server_pending.maximized);
+	printf("client_pending fullscreen: %d, maximized: %d\n", toplevel->client_pending.fullscreen, toplevel->client_pending.maximized);
 }
 
 void wc_xdg_init(struct wc_server *server) {
