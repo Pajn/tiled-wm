@@ -142,9 +142,9 @@ void wc_view_update_geometry(struct wc_view *view, struct wlr_box new_geo) {
 	memcpy(&view->pending_geometry, &new_geo, sizeof(struct wlr_box));
 }
 
-void wc_view_update_geometry_from_wm(struct wc_server *server, IdArray id_array) {
-	for (uintptr_t i = 0; i < id_array.length; i++) {
-		u_int64_t window_id = id_array.data[i];
+void wc_view_update_geometry_from_wm(struct wc_server *server, IdArray *id_array) {
+	for (uintptr_t i = 0; i < id_array->length; i++) {
+		u_int64_t window_id = id_array->data[i];
 		struct wc_view *view;
 		wl_list_for_each(view, &server->views, link) {
 			if (view->window_id == window_id) {
@@ -154,8 +154,6 @@ void wc_view_update_geometry_from_wm(struct wc_server *server, IdArray id_array)
 			}
 		}
 	}
-
-	rust_free(id_array);
 }
 
 void wc_view_damage(struct wc_view *view, pixman_region32_t *damage) {
@@ -296,8 +294,7 @@ void wc_view_commit(struct wc_view *view, struct wlr_box geo) {
 	}
 
 	if (geo_updated) {
-		IdArray id_array = update_window(view->server->wm, view->window_id, &view->geo);
-		wc_view_update_geometry_from_wm(view->server, id_array);
+		update_window(view->server->wm, view->window_id, &view->geo);
 	}
 	pixman_region32_fini(&damage);
 }
@@ -350,11 +347,30 @@ void wc_focus_view(struct wc_view *view) {
 		wlr_seat_keyboard_notify_enter(seat, surface, keyboard->keycodes,
 				keyboard->num_keycodes, &keyboard->modifiers);
 	}
+
+	focus_window(server->wm, view->window_id);
+}
+
+struct wc_view* get_view_by_id(struct wc_server *server, Id window_id) {
+	struct wc_view *view;
+	wl_list_for_each(view, &server->views, link) {
+		if (view->window_id == window_id) {
+			return view;
+		}
+	}
+	assert(false);
+}
+
+void wc_focus_window(struct wc_server *server, Id window_id) {
+	wc_focus_view(get_view_by_id(server, window_id));
 }
 
 void wc_views_init(struct wc_server *server) {
 	wl_list_init(&server->views);
 	wc_xdg_init(server);
+
+	register_focus_callback(server->wm, wc_focus_window);
+	register_dirty_windows_callback(server->wm, wc_view_update_geometry_from_wm);
 }
 
 void wc_views_fini(struct wc_server *server) {

@@ -32,39 +32,41 @@ static void wc_keyboard_on_key(struct wl_listener *listener, void *data) {
 			keyboard->device->keyboard->xkb_state, keycode, &syms);
 
 	bool handled = false;
+			
 	for (int i = 0; i < nsyms; i++) {
 		xkb_keysym_t keysym = syms[i];
-		if (keysym >= XKB_KEY_XF86Switch_VT_1 &&
-				keysym <= XKB_KEY_XF86Switch_VT_12) {
+		
+		if (keyboard_on_key(server->wm, keysym, event->state, keyboard->device->keyboard->xkb_state)) {
 			handled = true;
-			if (wlr_backend_is_multi(server->backend)) {
-				struct wlr_session *session =
-						wlr_backend_get_session(server->backend);
-				if (session) {
-					xkb_keysym_t vt = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
-					wlr_session_change_vt(session, vt);
-				}
-			}
 		}
+	}
 
-		switch (keysym) {
-			case XKB_KEY_Escape: {
-				if (wc_keyboard_mod_is_active(keyboard, "Shift") &&
-						wc_keyboard_mod_is_active(keyboard, "Control")) {
-					wl_display_terminate(server->wl_display);
-					handled = true;
-				}
-				break;
-			}
-			case XKB_KEY_a: {
-				if (event->state == WLR_KEY_PRESSED && wc_keyboard_mod_is_active(keyboard, "Control")) {
-					wlr_log(WLR_INFO, "Executing \"ulauncher-toggle\"");
-					if (fork() == 0) {
-						execl("/bin/sh", "/bin/sh", "-c", "ulauncher-toggle", NULL);
+	if (!handled) {
+		for (int i = 0; i < nsyms; i++) {
+			xkb_keysym_t keysym = syms[i];
+
+			if (keysym >= XKB_KEY_XF86Switch_VT_1 &&
+					keysym <= XKB_KEY_XF86Switch_VT_12) {
+				handled = true;
+				if (wlr_backend_is_multi(server->backend)) {
+					struct wlr_session *session =
+							wlr_backend_get_session(server->backend);
+					if (session) {
+						xkb_keysym_t vt = keysym - XKB_KEY_XF86Switch_VT_1 + 1;
+						wlr_session_change_vt(session, vt);
 					}
-					handled = true;
 				}
-				break;
+			}
+
+			switch (keysym) {
+				case XKB_KEY_Escape: {
+					if (wc_keyboard_mod_is_active(keyboard, "Shift") &&
+							wc_keyboard_mod_is_active(keyboard, "Control")) {
+						wl_display_terminate(server->wl_display);
+						handled = true;
+					}
+					break;
+				}
 			}
 		}
 	}

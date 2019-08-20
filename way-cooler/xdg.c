@@ -55,9 +55,7 @@ static void wc_xdg_surface_commit(struct wl_listener *listener, void *data) {
 void wc_xdg_surface_destroy(struct wl_listener *listener, void *data) {
 	struct wc_view *view = wl_container_of(listener, view, destroy);
 
-	IdArray id_array = destroy_window(view->server->wm, view->window_id);
-
-	wc_view_update_geometry_from_wm(view->server, id_array);
+	destroy_window(view->server->wm, view->window_id);
 
 	wl_list_remove(&view->link);
 

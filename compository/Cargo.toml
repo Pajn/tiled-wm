@@ -9,3 +9,8 @@ edition = "2018"
 crate-type = ["dylib"]
 
 [dependencies]
+xkb = "0.2.0"
+xkbcommon-sys = "0.7.4"
+
+[build-dependencies]
+cbindgen = "0.9.0"

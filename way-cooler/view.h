@@ -93,7 +93,6 @@ void wc_view_resize(struct wc_view *view, struct wlr_box geo, uint32_t edges);
 
 // Set the new geometry of the view to be applied when the client commits to it.
 void wc_view_update_geometry(struct wc_view *view, struct wlr_box new_geo);
-void wc_view_update_geometry_from_wm(struct wc_server *server, IdArray id_array);
 
 /* Finds the topmost (assuming server->views is top-to-bottom) view at the
  * specified output layout coordinates. If one cannot be found NULL is returned.

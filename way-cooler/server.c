@@ -32,7 +32,7 @@ bool init_server(struct wc_server *server) {
 		return false;
 	}
 
-	server->wm = create_window_manager();
+	server->wm = create_window_manager(server);
 	server->wl_display = wl_display_create();
 	server->wayland_socket = wl_display_add_socket_auto(server->wl_display);
 	if (!server->wayland_socket) {
