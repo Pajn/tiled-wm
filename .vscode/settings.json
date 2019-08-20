@@ -6,5 +6,6 @@
     "Dockerfile-*": "dockerfile",
     "yarn.lock": "yaml",
     "compository.h": "c"
-  }
+  },
+  "editor.formatOnSave": true
 }
