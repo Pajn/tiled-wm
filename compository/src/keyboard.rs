@@ -59,11 +59,29 @@ pub extern "C" fn keyboard_on_key(
 
   match Keysym(keysym) {
     ::xkb::key::a if mods_are_active(xkb_state, vec![Modifier::Control]) => {
-      Command::new("/bin/sh")
-        .arg("-c")
-        .arg("ulauncher-toggle")
+      Command::new("ulauncher-toggle")
         .spawn()
         .expect("failed to execute process");
+      true
+    }
+    ::xkb::key::Home if mods_are_active(xkb_state, vec![Modifier::Shift]) => {
+      let wm = unsafe { &mut *_wm };
+
+      let workspace = wm.workspaces.get(&wm.active_workspace).unwrap();
+      let window_id = *workspace.windows.first().unwrap();
+
+      wm.focus_window(window_id);
+
+      true
+    }
+    ::xkb::key::End if mods_are_active(xkb_state, vec![Modifier::Shift]) => {
+      let wm = unsafe { &mut *_wm };
+
+      let workspace = wm.workspaces.get(&wm.active_workspace).unwrap();
+      let window_id = *workspace.windows.last().unwrap();
+
+      wm.focus_window(window_id);
+
       true
     }
     ::xkb::key::Left if mods_are_active(xkb_state, vec![Modifier::Shift]) => {
@@ -84,11 +102,10 @@ pub extern "C" fn keyboard_on_key(
         wm.focus_window(window_id);
       } else {
         let workspace = wm.workspaces.get(&wm.active_workspace).unwrap();
-        let window_id = *workspace.windows.get(0).unwrap();
+        let window_id = *workspace.windows.first().unwrap();
 
         wm.focus_window(window_id);
       }
-      println!("WM: {:?}", &wm);
 
       true
     }
@@ -110,11 +127,10 @@ pub extern "C" fn keyboard_on_key(
         wm.focus_window(window_id);
       } else {
         let workspace = wm.workspaces.get(&wm.active_workspace).unwrap();
-        let window_id = *workspace.windows.get(0).unwrap();
+        let window_id = *workspace.windows.first().unwrap();
 
         wm.focus_window(window_id);
       }
-      println!("WM: {:?}", &wm);
 
       true
     }
@@ -143,7 +159,6 @@ pub extern "C" fn keyboard_on_key(
           wm.arrange_windows(workspace_id);
         }
       }
-      println!("WM: {:?}", &wm);
 
       true
     }
@@ -172,7 +187,6 @@ pub extern "C" fn keyboard_on_key(
           wm.arrange_windows(workspace_id);
         }
       }
-      println!("WM: {:?}", &wm);
 
       true
     }

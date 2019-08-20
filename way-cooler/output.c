@@ -320,7 +320,7 @@ static void wc_new_output(struct wl_listener *listener, void *data) {
 	output->server = server;
 	wlr_output->data = output;
 	output->damage = wlr_output_damage_create(wlr_output);
-	output->monitor_id = create_monitor(server->wm);
+	output->monitor_id = create_monitor(server->wm, wlr_output->width, wlr_output->height);
 
 	size_t len = sizeof(output->layers) / sizeof(output->layers[0]);
 	for (size_t i = 0; i < len; i++) {

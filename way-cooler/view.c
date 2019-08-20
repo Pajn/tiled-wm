@@ -16,6 +16,16 @@
 #include "xdg.h"
 #include "xwayland.h"
 
+struct wc_view* get_view_by_id(struct wc_server *server, Id window_id) {
+	struct wc_view *view;
+	wl_list_for_each(view, &server->views, link) {
+		if (view->window_id == window_id) {
+			return view;
+		}
+	}
+	assert(false);
+}
+
 static bool wc_is_view_at(struct wc_view *view, double lx, double ly,
 		double *out_sx, double *out_sy, struct wlr_surface **out_surface) {
 	int view_sx = lx - view->geo.x;
@@ -142,18 +152,11 @@ void wc_view_update_geometry(struct wc_view *view, struct wlr_box new_geo) {
 	memcpy(&view->pending_geometry, &new_geo, sizeof(struct wlr_box));
 }
 
-void wc_view_update_geometry_from_wm(struct wc_server *server, IdArray *id_array) {
-	for (uintptr_t i = 0; i < id_array->length; i++) {
-		u_int64_t window_id = id_array->data[i];
-		struct wc_view *view;
-		wl_list_for_each(view, &server->views, link) {
-			if (view->window_id == window_id) {
-				wlr_box new_geo = get_window_geometry(view->server->wm, view->window_id);
-				view->geo = new_geo;
-				wc_view_damage(view, NULL);
-			}
-		}
-	}
+void wc_view_update_geometry_from_wm(struct wc_server *server, Id window_id) {
+	struct wc_view *view = get_view_by_id(server, window_id);
+	wlr_box new_geo = get_window_geometry(view->server->wm, view->window_id);
+	view->geo = new_geo;
+	wc_view_damage_whole(view);
 }
 
 void wc_view_damage(struct wc_view *view, pixman_region32_t *damage) {
@@ -351,16 +354,6 @@ void wc_focus_view(struct wc_view *view) {
 	focus_window(server->wm, view->window_id);
 }
 
-struct wc_view* get_view_by_id(struct wc_server *server, Id window_id) {
-	struct wc_view *view;
-	wl_list_for_each(view, &server->views, link) {
-		if (view->window_id == window_id) {
-			return view;
-		}
-	}
-	assert(false);
-}
-
 void wc_focus_window(struct wc_server *server, Id window_id) {
 	wc_focus_view(get_view_by_id(server, window_id));
 }
@@ -370,7 +363,7 @@ void wc_views_init(struct wc_server *server) {
 	wc_xdg_init(server);
 
 	register_focus_callback(server->wm, wc_focus_window);
-	register_dirty_windows_callback(server->wm, wc_view_update_geometry_from_wm);
+	register_dirty_window_callback(server->wm, wc_view_update_geometry_from_wm);
 }
 
 void wc_views_fini(struct wc_server *server) {

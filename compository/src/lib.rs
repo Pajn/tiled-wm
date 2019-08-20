@@ -3,7 +3,7 @@ mod ffi;
 mod keyboard;
 
 use crate::entities::*;
-use crate::ffi::{wc_server, wlr_box, IdArray};
+use crate::ffi::{wc_server, wlr_box};
 use std::ffi::CStr;
 use std::mem::transmute;
 use std::os::raw::c_char;
@@ -30,17 +30,17 @@ pub extern "C" fn register_focus_callback(
 }
 
 #[no_mangle]
-pub extern "C" fn register_dirty_windows_callback(
+pub extern "C" fn register_dirty_window_callback(
   _wm: *mut WindowManager,
-  callback: extern "C" fn(server: *mut wc_server, window_ids: *mut IdArray) -> (),
+  callback: extern "C" fn(server: *mut wc_server, window_id: Id) -> (),
 ) -> () {
   let mut wm = unsafe { &mut *_wm };
 
-  wm.dirty_windows_callback = Some(callback);
+  wm.dirty_window_callback = Some(callback);
 }
 
 #[no_mangle]
-pub extern "C" fn create_monitor(_wm: *mut WindowManager) -> Id {
+pub extern "C" fn create_monitor(_wm: *mut WindowManager, width: i32, height: i32) -> Id {
   let mut wm = unsafe { &mut *_wm };
   let id = wm.next_monitor_id;
   wm.next_monitor_id += 1;
@@ -61,12 +61,14 @@ pub extern "C" fn create_monitor(_wm: *mut WindowManager) -> Id {
 
   let monitor = Monitor {
     id,
+    width,
+    height,
     active_workspace: workspace_id,
   };
   wm.monitors.insert(id, monitor);
   wm.workspaces.get_mut(&workspace_id).unwrap().active_monitor = Some(id);
 
-  println!("WM: {:?}", &wm);
+  println!("create_monitor WM: {:?}", &wm);
 
   id
 }
@@ -90,7 +92,7 @@ pub extern "C" fn create_window(_wm: *mut WindowManager) -> Id {
     .push(id);
   wm.focused_window = Some(id);
 
-  println!("WM: {:?}", &wm);
+  println!("create_window WM: {:?}", &wm);
 
   id
 }
@@ -141,7 +143,7 @@ pub extern "C" fn configure_window(
   _geo: *mut wlr_box,
   app_id: *const c_char,
   fullscreen: bool,
-) -> () {
+) -> bool {
   let wm = unsafe { &mut *_wm };
   let geo = unsafe { &mut *_geo };
   let app_id = unsafe {
@@ -155,21 +157,31 @@ pub extern "C" fn configure_window(
   window.fullscreen = fullscreen;
   let workspace = wm.workspaces.get(&window.workspace).unwrap();
   let workspace_id = workspace.id;
-  if window.is_tiled() {
+
+  let is_tiled = window.is_tiled();
+  if is_tiled {
     let x = wm
       .get_workspace_by_window(window_id)
       .unwrap()
       .windows
       .iter()
       .fold(0, |sum, w| sum + wm.windows.get(w).unwrap().geo.width);
+    let monitor = wm.get_monitor_by_window(window_id).unwrap();
     geo.x = x;
     geo.y = 0;
+    geo.height = monitor.height;
     wm.windows.get_mut(&window_id).unwrap().geo = geo.clone();
+  } else if window.app_id == "ulauncher" {
+    let monitor = wm.get_monitor_by_window(window_id).unwrap();
+    geo.x = (monitor.width - geo.width) / 2;
+    geo.y = (monitor.height - geo.height) / 2;
   }
 
-  println!("WM: {:?}", &wm);
+  println!("configure_window WM: {:?}", &wm);
 
   wm.arrange_windows(workspace_id);
+
+  is_tiled
 }
 
 #[no_mangle]
@@ -177,23 +189,28 @@ pub extern "C" fn update_window(_wm: *mut WindowManager, window_id: Id, _geo: *m
   let wm = unsafe { &mut *_wm };
   let geo = unsafe { &mut *_geo };
 
+  println!("update_window geo: {:?}", &geo);
+
   let window = wm.windows.get(&window_id).unwrap();
   let workspace = wm.get_workspace_by_window(window_id).unwrap();
   let workspace_id = workspace.id;
   if window.is_tiled() {
-    // FIX: X should not be last
     let x = wm
       .get_workspace_by_window(window_id)
       .unwrap()
       .windows
       .iter()
+      .take_while(|w| **w != window_id)
       .fold(0, |sum, w| sum + wm.windows.get(w).unwrap().geo.width);
+    let monitor = wm.get_monitor_by_window(window_id).unwrap();
+
     geo.x = x;
     geo.y = 0;
+    geo.height = monitor.height;
     wm.windows.get_mut(&window_id).unwrap().geo = geo.clone();
   }
 
-  println!("WM: {:?}", &wm);
+  println!("update_window WM: {:?}", &wm);
 
   wm.arrange_windows(workspace_id);
 }

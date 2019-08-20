@@ -30,9 +30,21 @@ static void wc_xdg_surface_map(struct wl_listener *listener, void *data) {
 	printf("2server_pending fullscreen: %d, maximized: %d\n", toplevel->server_pending.fullscreen, toplevel->server_pending.maximized);
 	printf("2client_pending fullscreen: %d, maximized: %d\n", toplevel->client_pending.fullscreen, toplevel->client_pending.maximized);
 
-	configure_window(view->server->wm, view->window_id, &view->geo, toplevel->app_id, toplevel->client_pending.fullscreen);
+	bool is_tiled = configure_window(view->server->wm, view->window_id, &view->geo, toplevel->app_id, toplevel->client_pending.fullscreen);
+	if (view->geo.width != view->xdg_surface->surface->current.width || view->geo.height != view->xdg_surface->surface->current.height) {
+		wlr_xdg_toplevel_set_size(view->xdg_surface, view->geo.width, view->geo.height);
+	}
+	if (is_tiled) {
+		wlr_xdg_toplevel_set_tiled(
+			view->xdg_surface, 
+			WLR_EDGE_TOP & 
+			WLR_EDGE_BOTTOM & 
+			WLR_EDGE_LEFT & 
+			WLR_EDGE_RIGHT
+		);
+	}
 
-	wc_view_damage_whole(view);
+	wc_view_commit(view, view->geo);
 }
 
 static void wc_xdg_surface_unmap(struct wl_listener *listener, void *data) {

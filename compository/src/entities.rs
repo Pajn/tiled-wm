@@ -1,4 +1,4 @@
-use crate::ffi::{wc_server, wlr_box, IdArray};
+use crate::ffi::{wc_server, wlr_box};
 use std::collections::BTreeMap;
 
 pub type Id = u64;
@@ -28,6 +28,9 @@ pub struct Workspace {
 #[derive(Debug)]
 pub struct Monitor {
   pub id: Id,
+  pub width: i32,
+  pub height: i32,
+
   pub active_workspace: Id,
 }
 
@@ -46,8 +49,7 @@ pub struct WindowManager {
 
   pub wc_server: Option<*mut wc_server>,
   pub focus_callback: Option<extern "C" fn(server: *mut wc_server, window_id: Id) -> ()>,
-  pub dirty_windows_callback:
-    Option<extern "C" fn(server: *mut wc_server, window_ids: *mut IdArray) -> ()>,
+  pub dirty_window_callback: Option<extern "C" fn(server: *mut wc_server, window_id: Id) -> ()>,
 }
 
 impl WindowManager {
@@ -71,6 +73,15 @@ impl WindowManager {
       .and_then(|window| self.workspaces.get(&window.workspace))
   }
 
+  pub fn get_monitor_by_window(&self, window_id: Id) -> Option<&Monitor> {
+    self
+      .windows
+      .get(&window_id)
+      .and_then(|window| self.workspaces.get(&window.workspace))
+      .and_then(|workspace| workspace.active_monitor)
+      .and_then(|monitor| self.monitors.get(&monitor))
+  }
+
   pub fn get_workspace_id_by_window(&self, window_id: Id) -> Option<Id> {
     self.windows.get(&window_id).map(|window| window.workspace)
   }
@@ -84,8 +95,6 @@ impl WindowManager {
   }
 
   pub fn arrange_windows(&mut self, workspace_id: Id) -> () {
-    let mut dirty_windows = vec![];
-
     let window_positions: Vec<_> = self
       .workspaces
       .get(&workspace_id)
@@ -110,15 +119,12 @@ impl WindowManager {
 
       if window.geo.x != x {
         window.geo.x = x;
-        dirty_windows.push(window_id);
+        if let (Some(server), Some(dirty_window_callback)) =
+          (self.wc_server, self.dirty_window_callback)
+        {
+          dirty_window_callback(server, window.id);
+        }
       }
-    }
-
-    if let (Some(server), Some(dirty_windows_callback)) =
-      (self.wc_server, self.dirty_windows_callback)
-    {
-      let mut dirty_windows = IdArray::from_vec(dirty_windows);
-      dirty_windows_callback(server, &mut dirty_windows);
     }
   }
 
