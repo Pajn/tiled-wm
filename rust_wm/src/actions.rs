@@ -102,7 +102,7 @@ pub fn update_window_positions(wm: &mut WindowManager, workspace_id: Id) -> () {
 
     let x = window.workspace_geo.x - scroll_left;
     let y = window.workspace_geo.y;
-    let size = window.workspace_geo.size();
+    let size = window.rendered_size();
 
     if size != old_size {
       let window = wm.windows.get_mut(&window_id).unwrap();

@@ -1,4 +1,4 @@
-use std::ops::Sub;
+use std::ops::{Add, Sub};
 use wlroots_rs::*;
 
 #[repr(C)]
@@ -45,6 +45,28 @@ impl Size {
     Size {
       width: self.width,
       height,
+    }
+  }
+}
+
+impl Add<Size> for Size {
+  type Output = Size;
+
+  fn add(self, other: Size) -> Self::Output {
+    Size {
+      width: self.width + other.width,
+      height: self.height + other.height,
+    }
+  }
+}
+
+impl Sub<Size> for Size {
+  type Output = Size;
+
+  fn sub(self, other: Size) -> Self::Output {
+    Size {
+      width: self.width - other.width,
+      height: self.height - other.height,
     }
   }
 }
@@ -156,6 +178,28 @@ impl Sub<Point> for Point {
     Displacement {
       dx: self.x - other.x,
       dy: self.y - other.y,
+    }
+  }
+}
+
+impl Add<Displacement> for Point {
+  type Output = Point;
+
+  fn add(self, other: Displacement) -> Self::Output {
+    Point {
+      x: self.x + other.dx,
+      y: self.y + other.dy,
+    }
+  }
+}
+
+impl Sub<Displacement> for Point {
+  type Output = Point;
+
+  fn sub(self, other: Displacement) -> Self::Output {
+    Point {
+      x: self.x - other.dx,
+      y: self.y - other.dy,
     }
   }
 }

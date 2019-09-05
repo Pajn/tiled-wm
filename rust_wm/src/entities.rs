@@ -199,16 +199,67 @@ impl View {
       _ => MIN_SIZE,
     }
   }
+
   pub fn height(&self) -> u32 {
+    // match self.surface_type {
+    //   SurfaceType::Xdg { xdg_surface } => unsafe {
+    //     (*(*xdg_surface).surface).current.height as u32
+    //   },
+    //   _ => MIN_SIZE,
+    // }
+
+    println!("Height {}:", self.app_id());
+    println!("self.geo.height {}:", self.geo.height);
     match self.surface_type {
-      SurfaceType::Xdg { xdg_surface } => unsafe { (*xdg_surface).geometry.height as u32 },
-      _ => MIN_SIZE,
+      SurfaceType::Xdg { xdg_surface } => unsafe {
+        unsafe { println!("geometry {}:", (*xdg_surface).geometry.height) };
+        unsafe {
+          println!(
+            "surface current {}:",
+            (*(*xdg_surface).surface).current.height
+          )
+        };
+        match (*xdg_surface).role {
+          wlr_xdg_surface_role::WLR_XDG_SURFACE_ROLE_TOPLEVEL => {
+            unsafe {
+              println!(
+                "toplevel current {}:",
+                (*(*xdg_surface).__bindgen_anon_1.toplevel).current.height
+              )
+            };
+          }
+          _ => {}
+        }
+      },
+      _ => {}
     }
+    (self.geo.height - self.shadow_size().height) as u32
   }
   pub fn width(&self) -> u32 {
+    (self.geo.width - self.shadow_size().width) as u32
+  }
+
+  pub fn shadow_size(&self) -> Size {
     match self.surface_type {
-      SurfaceType::Xdg { xdg_surface } => unsafe { (*xdg_surface).geometry.width as u32 },
-      _ => MIN_SIZE,
+      SurfaceType::Xdg { xdg_surface } => unsafe {
+        Size {
+          width: ((*(*xdg_surface).surface).current.width - (*xdg_surface).geometry.width),
+          height: ((*(*xdg_surface).surface).current.height - (*xdg_surface).geometry.height),
+        }
+      },
+      _ => Size::default(),
+    }
+  }
+
+  pub fn shadow_displacement(&self) -> Displacement {
+    match self.surface_type {
+      SurfaceType::Xdg { xdg_surface } => unsafe {
+        Displacement {
+          dx: ((*(*xdg_surface).surface).current.width - (*xdg_surface).geometry.width) / 2,
+          dy: ((*(*xdg_surface).surface).current.height - (*xdg_surface).geometry.height) / 2,
+        }
+      },
+      _ => Displacement::default(),
     }
   }
 
@@ -257,11 +308,11 @@ impl Window {
   }
 
   pub fn x(&self) -> i32 {
-    self.window_info.geo.x
+    self.window_info.geo.x - self.window_info.shadow_displacement().dx
   }
 
   pub fn y(&self) -> i32 {
-    self.window_info.geo.y
+    self.window_info.geo.y - self.window_info.shadow_displacement().dy
   }
 
   pub fn height(&self) -> i32 {
@@ -302,11 +353,14 @@ impl Window {
     self.window_info.min_width() as i32
   }
 
-  pub fn resize(&mut self, mut size: Size) {
+  pub fn resize(&mut self, size: Size) {
     println!("resize {}, {:?}", self.window_info.app_id(), size);
     // size.width = cmp::max(cmp::min(size.width, self.max_width()), self.min_width());
     // size.height = cmp::max(cmp::min(size.height, self.max_height()), self.min_height());
-    let new_geo = self.window_info.geo.with_size(size);
+    let new_geo = self
+      .window_info
+      .geo
+      .with_size(size + self.window_info.shadow_size());
 
     match self.window_info.surface_type {
       SurfaceType::Xdg { xdg_surface } => unsafe {
@@ -330,6 +384,8 @@ impl Window {
   pub fn move_to(&mut self, top_left: Point) {
     println!("move_to {}, {:?}", self.window_info.app_id(), top_left);
     println!("geo {:?}", self.window_info.geo);
+    let top_left = top_left - self.window_info.shadow_displacement();
+    println!("move_to displaced {:?}", top_left);
     unsafe { wc_view_damage_whole(self.window_info_ptr) }
     self.window_info.geo.set_top_left(top_left);
     unsafe { wc_view_damage_whole(self.window_info_ptr) }

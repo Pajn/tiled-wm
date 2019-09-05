@@ -32,7 +32,8 @@ static void wc_keyboard_on_key(struct wl_listener *listener, void *data) {
 	int nsyms = xkb_state_key_get_syms(
 			state, keycode, &syms);
 
-	bool handled = handle_keyboard_event(server->wm, state, keycode);
+	bool handled = false;
+	// handle_keyboard_event(server->wm, state, keycode);
 			
 	if (!handled) {
 		for (int i = 0; i < nsyms; i++) {

@@ -222,12 +222,16 @@ void wc_view_commit(struct View *view, struct wlr_box geo) {
 	}
 
 	struct wlr_surface *surface = NULL;
+	// struct wlr_box geometry = {0};
 	switch (view->surface_type.tag) {
 	case Xdg:
 		surface = view->surface_type.xdg.xdg_surface->surface;
+		// geometry = view->surface_type.xdg.xdg_surface->geometry;
 		break;
 	case Xwayland:
 		surface = view->surface_type.xwayland.xwayland_surface->surface;
+		// geometry.height = view->surface_type.xwayland.xwayland_surface->height;
+		// geometry.width = view->surface_type.xwayland.xwayland_surface->width;
 		break;
 	}
 	if (surface == NULL) {

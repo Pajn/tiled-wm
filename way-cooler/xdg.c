@@ -32,7 +32,7 @@ static void wc_xdg_surface_map(struct wl_listener *listener, void *data) {
 	printf("2client_pending fullscreen: %d, maximized: %d\n", toplevel->client_pending.fullscreen, toplevel->client_pending.maximized);
 
 	// bool is_tiled = configure_window(view->server.server->wm, view->window_id, &view->geo, toplevel->app_id, toplevel->client_pending.fullscreen);
-	if (view->geo.width != view->surface_type.xdg.xdg_surface->surface->current.width || view->geo.height != view->surface_type.xdg.xdg_surface->surface->current.height) {
+	if (view->geo.width != view->surface_type.xdg.xdg_surface->geometry.width || view->geo.height != view->surface_type.xdg.xdg_surface->geometry.height) {
 		wlr_xdg_toplevel_set_size(view->surface_type.xdg.xdg_surface, view->geo.width, view->geo.height);
 	}
 	// if (is_tiled) {
