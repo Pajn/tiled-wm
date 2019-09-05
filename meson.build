@@ -34,6 +34,6 @@ if git.found()
 endif
 add_project_arguments('-DWAY_COOLER_VERSION=@0@'.format(version), language: 'c')
 
-subdir('compository')
+subdir('rust_wm')
 subdir('protocols')
 subdir('way-cooler')

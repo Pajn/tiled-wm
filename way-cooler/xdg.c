@@ -7,7 +7,7 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/util/log.h>
 
-#include "../compository/compository.h"
+#include "../rust_wm/rust_wm.h"
 
 #include "cursor.h"
 #include "output.h"
@@ -16,47 +16,48 @@
 #include "view.h"
 
 static void wc_xdg_surface_map(struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, map);
+	struct View *view = wl_container_of(listener, view, map);
 	view->mapped = true;
-	wc_focus_view(view);
+	// wc_focus_view(view);
 
-	struct wlr_xdg_surface *surface = view->xdg_surface;
+	struct wlr_xdg_surface *surface = view->surface_type.xdg.xdg_surface;
 	struct wlr_box box = {0};
 	wlr_xdg_surface_get_geometry(surface, &box);
 	memcpy(&view->geo, &box, sizeof(struct wlr_box));
+	handle_window_ready(view->server.server->wm, view);
 
-	struct wlr_xdg_toplevel *toplevel = view->xdg_surface->toplevel;
+	struct wlr_xdg_toplevel *toplevel = view->surface_type.xdg.xdg_surface->toplevel;
 	printf("2current fullscreen: %d, maximized: %d\n", toplevel->current.fullscreen, toplevel->current.maximized);
 	printf("2server_pending fullscreen: %d, maximized: %d\n", toplevel->server_pending.fullscreen, toplevel->server_pending.maximized);
 	printf("2client_pending fullscreen: %d, maximized: %d\n", toplevel->client_pending.fullscreen, toplevel->client_pending.maximized);
 
-	bool is_tiled = configure_window(view->server->wm, view->window_id, &view->geo, toplevel->app_id, toplevel->client_pending.fullscreen);
-	if (view->geo.width != view->xdg_surface->surface->current.width || view->geo.height != view->xdg_surface->surface->current.height) {
-		wlr_xdg_toplevel_set_size(view->xdg_surface, view->geo.width, view->geo.height);
+	// bool is_tiled = configure_window(view->server.server->wm, view->window_id, &view->geo, toplevel->app_id, toplevel->client_pending.fullscreen);
+	if (view->geo.width != view->surface_type.xdg.xdg_surface->surface->current.width || view->geo.height != view->surface_type.xdg.xdg_surface->surface->current.height) {
+		wlr_xdg_toplevel_set_size(view->surface_type.xdg.xdg_surface, view->geo.width, view->geo.height);
 	}
-	if (is_tiled) {
-		wlr_xdg_toplevel_set_tiled(
-			view->xdg_surface, 
-			WLR_EDGE_TOP & 
-			WLR_EDGE_BOTTOM & 
-			WLR_EDGE_LEFT & 
-			WLR_EDGE_RIGHT
-		);
-	}
+	// if (is_tiled) {
+	// 	wlr_xdg_toplevel_set_tiled(
+	// 		view->surface_type.xdg.xdg_surface, 
+	// 		WLR_EDGE_TOP & 
+	// 		WLR_EDGE_BOTTOM & 
+	// 		WLR_EDGE_LEFT & 
+	// 		WLR_EDGE_RIGHT
+	// 	);
+	// }
 
 	wc_view_commit(view, view->geo);
 }
 
 static void wc_xdg_surface_unmap(struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, unmap);
+	struct View *view = wl_container_of(listener, view, unmap);
 	view->mapped = false;
 
 	wc_view_damage_whole(view);
 }
 
 static void wc_xdg_surface_commit(struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, commit);
-	struct wlr_xdg_surface *xdg_surface = view->xdg_surface;
+	struct View *view = wl_container_of(listener, view, commit);
+	struct wlr_xdg_surface *xdg_surface = view->surface_type.xdg.xdg_surface;
 
 	struct wlr_box geo = {0};
 	wlr_xdg_surface_get_geometry(xdg_surface, &geo);
@@ -65,9 +66,9 @@ static void wc_xdg_surface_commit(struct wl_listener *listener, void *data) {
 }
 
 void wc_xdg_surface_destroy(struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, destroy);
+	struct View *view = wl_container_of(listener, view, destroy);
 
-	destroy_window(view->server->wm, view->window_id);
+	advise_delete_window(view->server.server->wm, view);
 
 	wl_list_remove(&view->link);
 
@@ -83,21 +84,21 @@ void wc_xdg_surface_destroy(struct wl_listener *listener, void *data) {
 
 static void wc_xdg_toplevel_request_move(
 		struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, request_move);
+	struct View *view = wl_container_of(listener, view, request_move);
 
 	struct wlr_box geo;
-	wlr_xdg_surface_get_geometry(view->xdg_surface, &geo);
+	wlr_xdg_surface_get_geometry(view->surface_type.xdg.xdg_surface, &geo);
 
 	wc_view_move(view, geo);
 }
 
 static void wc_xdg_toplevel_request_resize(
 		struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, request_resize);
+	struct View *view = wl_container_of(listener, view, request_resize);
 	struct wlr_xdg_toplevel_resize_event *event = data;
 
 	struct wlr_box geo;
-	wlr_xdg_surface_get_geometry(view->xdg_surface, &geo);
+	wlr_xdg_surface_get_geometry(view->surface_type.xdg.xdg_surface, &geo);
 
 	wc_view_resize(view, geo, event->edges);
 }
@@ -110,11 +111,8 @@ static void wc_xdg_new_surface(struct wl_listener *listener, void *data) {
 		return;
 	}
 
-	struct wc_view *view = calloc(1, sizeof(struct wc_view));
-	view->server = server;
-	view->xdg_surface = xdg_surface;
-	view->surface_type = WC_XDG;
-	view->window_id = create_window(server->wm);
+	View* view = create_xdg_window(server->wm, xdg_surface);
+	view->server.server = server;
 
 	view->map.notify = wc_xdg_surface_map;
 	view->unmap.notify = wc_xdg_surface_unmap;

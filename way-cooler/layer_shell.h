@@ -26,6 +26,6 @@ void wc_layers_fini(struct wc_server *server);
 void wc_layer_shell_destroy(struct wl_listener *listener, void *data);
 
 // Arrange the layer shells on this output.
-void wc_layer_shell_arrange_layers(struct wc_output *output);
+void wc_layer_shell_arrange_layers(struct Output *output);
 
 #endif  // LAYER_SHELL_H

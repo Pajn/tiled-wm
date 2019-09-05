@@ -15,7 +15,7 @@
 #include <wlr/types/wlr_screencopy_v1.h>
 #include <wlr/types/wlr_xcursor_manager.h>
 
-#include "../compository/compository.h"
+#include "../rust_wm/rust_wm.h"
 
 #include "cursor.h"
 #include "input.h"
@@ -32,7 +32,7 @@ bool init_server(struct wc_server *server) {
 		return false;
 	}
 
-	server->wm = create_window_manager(server);
+	server->wm = init_wm(server);
 	server->wl_display = wl_display_create();
 	server->wayland_socket = wl_display_add_socket_auto(server->wl_display);
 	if (!server->wayland_socket) {

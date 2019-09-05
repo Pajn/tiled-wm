@@ -14,7 +14,7 @@
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/xwayland.h>
 
-#include "../compository/compository.h"
+#include "../rust_wm/rust_wm.h"
 
 int WC_DEBUG;
 
@@ -37,7 +37,7 @@ struct wc_server {
 	struct wl_listener new_input;
 
 	struct wlr_output_layout *output_layout;
-	struct wc_output *active_output;
+	struct Output *active_output;
 	struct wl_list outputs;
 	struct wl_listener new_output;
 

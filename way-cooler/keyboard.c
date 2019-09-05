@@ -25,22 +25,15 @@ static void wc_keyboard_on_key(struct wl_listener *listener, void *data) {
 	struct wc_server *server = keyboard->server;
 	struct wlr_seat *seat = server->seat->seat;
 	struct wlr_event_keyboard_key *event = data;
+	struct xkb_state *state = keyboard->device->keyboard->xkb_state;
 
 	uint32_t keycode = event->keycode + 8;
 	const xkb_keysym_t *syms;
 	int nsyms = xkb_state_key_get_syms(
-			keyboard->device->keyboard->xkb_state, keycode, &syms);
+			state, keycode, &syms);
 
-	bool handled = false;
+	bool handled = handle_keyboard_event(server->wm, state, keycode);
 			
-	for (int i = 0; i < nsyms; i++) {
-		xkb_keysym_t keysym = syms[i];
-		
-		if (keyboard_on_key(server->wm, keysym, event->state, keyboard->device->keyboard->xkb_state)) {
-			handled = true;
-		}
-	}
-
 	if (!handled) {
 		for (int i = 0; i < nsyms; i++) {
 			xkb_keysym_t keysym = syms[i];

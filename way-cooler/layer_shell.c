@@ -9,6 +9,8 @@
 #include <wlr/types/wlr_output_damage.h>
 #include <wlr/util/log.h>
 
+#include "../rust_wm/rust_wm.h"
+
 #include "output.h"
 #include "seat.h"
 #include "server.h"
@@ -82,11 +84,11 @@ void wc_layer_shell_destroy(struct wl_listener *listener, void *data) {
 	free(layer);
 }
 
-static void wc_arrange_layer(struct wc_output *output, struct wc_seat *seat,
+static void wc_arrange_layer(struct Output *output, struct wc_seat *seat,
 		struct wl_list *layers, struct wlr_box *usable_area, bool exclusive) {
 	struct wlr_box full_area = {0};
 	wlr_output_effective_resolution(
-			output->wlr_output, &full_area.width, &full_area.height);
+			output->wlr_output.value, &full_area.width, &full_area.height);
 	struct wc_layer *wc_layer;
 	wl_list_for_each_reverse(wc_layer, layers, link) {
 		struct wlr_layer_surface_v1 *layer = wc_layer->layer_surface;
@@ -163,12 +165,12 @@ static void wc_arrange_layer(struct wc_output *output, struct wc_seat *seat,
 	}
 }
 
-void wc_layer_shell_arrange_layers(struct wc_output *output) {
+void wc_layer_shell_arrange_layers(struct Output *output) {
 	struct wlr_box usable_area = {0};
-	struct wc_server *server = output->server;
+	struct wc_server *server = output->server.server;
 	struct wc_seat *seat = server->seat;
 	wlr_output_effective_resolution(
-			output->wlr_output, &usable_area.width, &usable_area.height);
+			output->wlr_output.value, &usable_area.width, &usable_area.height);
 	wc_arrange_layer(output, seat,
 			&output->layers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &usable_area,
 			true);
@@ -224,7 +226,7 @@ static void wc_layer_shell_new_surface(
 	struct wc_server *server =
 			wl_container_of(listener, server, new_layer_surface);
 	struct wlr_layer_surface_v1 *layer_surface = data;
-	struct wc_output *active_output = wc_get_active_output(server);
+	struct Output *active_output = wc_get_active_output(server);
 	if (active_output == NULL) {
 		wlr_layer_surface_v1_close(layer_surface);
 		return;
@@ -232,9 +234,9 @@ static void wc_layer_shell_new_surface(
 
 	if (!layer_surface->output) {
 		// If client did not request an output, give them the focused one.
-		layer_surface->output = active_output->wlr_output;
+		layer_surface->output = active_output->wlr_output.value;
 	}
-	struct wc_output *output = layer_surface->output->data;
+	struct Output *output = layer_surface->output->data;
 
 	struct wc_layer *layer = calloc(1, sizeof(struct wc_layer));
 	layer->server = server;

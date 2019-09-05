@@ -29,6 +29,7 @@ server_protocols = [
 	['wlr-layer-shell-unstable-v1.xml'],
 	['way-cooler-mousegrabber-unstable-v1.xml'],
 	['way-cooler-keybindings-unstable-v1.xml'],
+	['wlr-input-inhibitor-unstable-v1.xml'],
 ]
 
 server_protos_src = []

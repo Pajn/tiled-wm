@@ -9,3 +9,5 @@ build
 
 # For building wlroots as a subproject
 subprojects
+
+old-build

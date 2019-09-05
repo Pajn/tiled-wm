@@ -34,7 +34,7 @@ struct wc_cursor {
 	 * depending on mode, these may or may not be valid
 	 */
 	struct {
-		struct wc_view *view;
+		struct View *view;
 		// Original coordinates of where the cursor was.
 		int original_x, original_y;
 		struct wlr_box original_view_geo;

@@ -12,7 +12,8 @@
 #include "view.h"
 
 void wc_xwayland_surface_destroy(struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, destroy);
+	struct View *view = wl_container_of(listener, view, destroy);
+	advise_delete_window(view->server.server->wm, view);
 
 	wl_list_remove(&view->link);
 
@@ -28,7 +29,7 @@ void wc_xwayland_surface_destroy(struct wl_listener *listener, void *data) {
 
 static void wc_xwayland_request_configure(
 		struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, configure);
+	struct View *view = wl_container_of(listener, view, configure);
 
 	struct wlr_xwayland_surface_configure_event *event = data;
 
@@ -37,13 +38,13 @@ static void wc_xwayland_request_configure(
 	view->geo.width = event->width;
 	view->geo.height = event->height;
 
-	wlr_xwayland_surface_configure(view->xwayland_surface, event->x, event->y,
+	wlr_xwayland_surface_configure(view->surface_type.xwayland.xwayland_surface, event->x, event->y,
 			event->width, event->height);
 }
 
 static void wc_xwayland_commit(struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, commit);
-	struct wlr_xwayland_surface *xwayland_surface = view->xwayland_surface;
+	struct View *view = wl_container_of(listener, view, commit);
+	struct wlr_xwayland_surface *xwayland_surface = view->surface_type.xwayland.xwayland_surface;
 
 	struct wlr_box size = {
 			.x = view->geo.x,
@@ -56,25 +57,26 @@ static void wc_xwayland_commit(struct wl_listener *listener, void *data) {
 }
 
 static void wc_xwayland_surface_map(struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, map);
+	struct View *view = wl_container_of(listener, view, map);
 	struct wlr_xwayland_surface *surface = data;
 
 	view->mapped = true;
-	wc_focus_view(view);
+	// wc_focus_view(view);
 
 	view->geo.width = surface->width;
 	view->geo.height = surface->height;
+	handle_window_ready(view->server.server->wm, view);
 
 	view->commit.notify = wc_xwayland_commit;
 	wl_signal_add(
-			&view->xwayland_surface->surface->events.commit, &view->commit);
+			&view->surface_type.xwayland.xwayland_surface->surface->events.commit, &view->commit);
 
 	wc_view_damage_whole(view);
 }
 
 static void wc_xwayland_surface_unmap(
 		struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, unmap);
+	struct View *view = wl_container_of(listener, view, unmap);
 	view->mapped = false;
 
 	wl_list_remove(&view->commit.link);
@@ -83,13 +85,13 @@ static void wc_xwayland_surface_unmap(
 }
 
 static void wc_xwayland_request_move(struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, request_move);
+	struct View *view = wl_container_of(listener, view, request_move);
 
 	struct wlr_box geo = {
 			.x = view->geo.x,
 			.y = view->geo.y,
-			.width = view->xwayland_surface->width,
-			.height = view->xwayland_surface->height,
+			.width = view->surface_type.xwayland.xwayland_surface->width,
+			.height = view->surface_type.xwayland.xwayland_surface->height,
 	};
 
 	wc_view_move(view, geo);
@@ -97,14 +99,14 @@ static void wc_xwayland_request_move(struct wl_listener *listener, void *data) {
 
 static void wc_xwayland_request_resize(
 		struct wl_listener *listener, void *data) {
-	struct wc_view *view = wl_container_of(listener, view, request_resize);
+	struct View *view = wl_container_of(listener, view, request_resize);
 	struct wlr_xwayland_resize_event *event = data;
 
 	struct wlr_box geo = {
 			.x = view->geo.x,
 			.y = view->geo.y,
-			.width = view->xwayland_surface->width,
-			.height = view->xwayland_surface->height,
+			.width = view->surface_type.xwayland.xwayland_surface->width,
+			.height = view->surface_type.xwayland.xwayland_surface->height,
 	};
 
 	wc_view_resize(view, geo, event->edges);
@@ -115,11 +117,8 @@ static void wc_xwayland_new_surface(struct wl_listener *listener, void *data) {
 			wl_container_of(listener, server, new_xwayland_surface);
 	struct wlr_xwayland_surface *xwayland_surface = data;
 
-	struct wc_view *view = calloc(1, sizeof(struct wc_view));
-	view->server = server;
-	view->xwayland_surface = xwayland_surface;
-	view->surface_type = WC_XWAYLAND;
-	view->window_id = create_window(server->wm);
+	View* view = create_xwayland_window(server->wm, xwayland_surface);
+	view->server.server = server;
 
 	view->map.notify = wc_xwayland_surface_map;
 	view->unmap.notify = wc_xwayland_surface_unmap;
